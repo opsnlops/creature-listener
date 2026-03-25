@@ -2,12 +2,12 @@
 
 #include <argparse/argparse.hpp>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
 
 #include "Version.h"
+#include "config/ConfigFile.h"
 #include "util/namespace-stuffs.h"
 
 namespace creatures {
@@ -21,12 +21,11 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
 
     program.add_description("Wake word conversational interface for Beaky");
 
-    // Audio
-    program.add_argument("--audio-device")
-        .help("PortAudio device index (-1 for default)")
-        .default_value(-1)
-        .scan<'i', int>();
+    program.add_argument("--config-path")
+        .help("Path to YAML configuration file")
+        .default_value(std::string(""));
 
+    // These few flags are useful without a config file (dev/testing)
     program.add_argument("--list-devices")
         .help("List available audio devices and exit")
         .default_value(false)
@@ -37,105 +36,30 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
         .default_value(false)
         .implicit_value(true);
 
-    // Wake word (LOWWI / openWakeWord)
-    program.add_argument("--wake-word-model")
-        .help("Path to wake word classifier .onnx model (e.g. hey_beaky.onnx)");
-
-    program.add_argument("--mel-model")
-        .help("Path to melspectrogram.onnx (shared preprocessing model)");
-
-    program.add_argument("--embedding-model")
-        .help("Path to embedding_model.onnx (shared feature extraction model)");
-
-    program.add_argument("--wake-word-threshold")
-        .help("Wake word detection confidence threshold (0.0 - 1.0)")
-        .default_value(0.5f)
-        .scan<'g', float>();
-
-    // Whisper
-    program.add_argument("--whisper-model")
-        .help("Path to whisper ggml model file")
-        .default_value(std::string("/usr/share/creature-listener/data/ggml-tiny.en.bin"));
-
-    // VAD
-    program.add_argument("--vad-model")
-        .help("Path to Silero VAD ONNX model")
-        .default_value(std::string("/usr/share/creature-listener/data/silero_vad.onnx"));
-
-    program.add_argument("--vad-threshold")
-        .help("Silero VAD confidence threshold (0.0 - 1.0)")
-        .default_value(0.5f)
-        .scan<'g', float>();
-
-    program.add_argument("--silence-duration-ms")
-        .help("Milliseconds of silence before ending recording")
-        .default_value(1500)
+    program.add_argument("--audio-device")
+        .help("Override audio device index")
+        .default_value(-1)
         .scan<'i', int>();
 
-    program.add_argument("--max-record-seconds")
-        .help("Maximum recording length in seconds")
-        .default_value(15)
-        .scan<'i', int>();
+    // Allow overriding creature-id and server URL from CLI for quick testing
+    program.add_argument("--creature-id")
+        .help("Override creature UUID");
 
-    // LLM
+    program.add_argument("--creature-server-url")
+        .help("Override creature-server base URL");
+
     program.add_argument("--llm-host")
-        .help("llama-server hostname")
-        .default_value(std::string("10.69.66.4"));
+        .help("Override llama-server hostname");
 
     program.add_argument("--llm-port")
-        .help("llama-server port")
-        .default_value(1234)
+        .help("Override llama-server port")
         .scan<'i', int>();
 
-    program.add_argument("--llm-model")
-        .help("Model name for llama-server")
-        .default_value(std::string("mistral-nemo"));
+    program.add_argument("--whisper-model")
+        .help("Override whisper model path");
 
-    program.add_argument("--llm-system-prompt")
-        .help("System prompt text or path to a file containing it");
-
-    program.add_argument("--llm-temperature")
-        .help("LLM temperature")
-        .default_value(1.2f)
-        .scan<'g', float>();
-
-    program.add_argument("--llm-max-tokens")
-        .help("Maximum tokens in LLM response")
-        .default_value(256)
-        .scan<'i', int>();
-
-    program.add_argument("--min-sentence-chars")
-        .help("Minimum characters before yielding a sentence to TTS")
-        .default_value(50)
-        .scan<'i', int>();
-
-    // Conversation
-    program.add_argument("--conversation-history")
-        .help("Maximum conversation exchanges to keep")
-        .default_value(10)
-        .scan<'i', int>();
-
-    // Tracing (OpenTelemetry)
     program.add_argument("--honeycomb-api-key")
-        .help("Honeycomb API key for trace export (or set HONEYCOMB_API_KEY env var)");
-
-    program.add_argument("--honeycomb-dataset")
-        .help("Honeycomb dataset name")
-        .default_value(std::string("creature-listener"));
-
-    // Creature server
-    program.add_argument("--creature-server-url")
-        .help("creature-server base URL")
-        .default_value(std::string("https://server.prod.chirpchirp.dev"));
-
-    program.add_argument("--creature-id")
-        .help("Creature UUID for Beaky")
-        .default_value(std::string(""));
-
-    program.add_argument("--no-resume-playlist")
-        .help("Don't resume playlist after speaking")
-        .default_value(false)
-        .implicit_value(true);
+        .help("Override Honeycomb API key (or set HONEYCOMB_API_KEY env var)");
 
     try {
         program.parse_args(argc, argv);
@@ -147,71 +71,59 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
 
     auto config = std::make_unique<Configuration>();
 
-    config->verbose = program.get<bool>("--verbose");
-    config->audioDeviceIndex = program.get<int>("--audio-device");
+    // --list-devices works without any config
     config->listDevices = program.get<bool>("--list-devices");
+    if (config->listDevices) {
+        return config;
+    }
 
-    // Validate creature-id is provided unless just listing devices
-    if (!config->listDevices) {
-        auto creatureId = program.get<std::string>("--creature-id");
-        if (creatureId.empty()) {
-            std::cerr << "--creature-id is required" << std::endl;
-            std::cerr << program;
+    config->verbose = program.get<bool>("--verbose");
+
+    // Load config file if provided
+    auto configPath = program.get<std::string>("--config-path");
+    if (!configPath.empty()) {
+        if (!loadConfigFile(configPath, *config)) {
             return nullptr;
         }
     }
 
-    if (auto val = program.present("--wake-word-model")) {
-        config->wakeWordModelPath = *val;
+    // CLI overrides (applied after config file)
+    auto audioDevice = program.get<int>("--audio-device");
+    if (audioDevice >= 0) {
+        config->audioDeviceIndex = audioDevice;
     }
-    if (auto val = program.present("--mel-model")) {
-        config->melModelPath = *val;
+
+    if (auto val = program.present("--creature-id")) {
+        config->creatureId = *val;
     }
-    if (auto val = program.present("--embedding-model")) {
-        config->embeddingModelPath = *val;
+    if (auto val = program.present("--creature-server-url")) {
+        config->creatureServerUrl = *val;
     }
-    config->wakeWordThreshold = program.get<float>("--wake-word-threshold");
+    if (auto val = program.present("--llm-host")) {
+        config->llmHost = *val;
+    }
+    if (auto val = program.present<int>("--llm-port")) {
+        config->llmPort = *val;
+    }
+    if (auto val = program.present("--whisper-model")) {
+        config->whisperModelPath = *val;
+    }
 
-    config->whisperModelPath = program.get<std::string>("--whisper-model");
-
-    config->vadModelPath = program.get<std::string>("--vad-model");
-    config->vadThreshold = program.get<float>("--vad-threshold");
-    config->silenceDurationMs = program.get<int>("--silence-duration-ms");
-    config->maxRecordSeconds = program.get<int>("--max-record-seconds");
-
-    config->llmHost = program.get<std::string>("--llm-host");
-    config->llmPort = program.get<int>("--llm-port");
-    config->llmModel = program.get<std::string>("--llm-model");
-    config->llmTemperature = program.get<float>("--llm-temperature");
-    config->llmMaxTokens = program.get<int>("--llm-max-tokens");
-    config->minSentenceChars = program.get<int>("--min-sentence-chars");
-
-    // System prompt: if the value is a readable file path, load its contents
-    if (auto val = program.present("--llm-system-prompt")) {
-        std::ifstream file(*val);
-        if (file.is_open()) {
-            std::string contents((std::istreambuf_iterator<char>(file)),
-                                 std::istreambuf_iterator<char>());
-            config->llmSystemPrompt = contents;
-            info("Loaded system prompt from file: {}", *val);
-        } else {
-            config->llmSystemPrompt = *val;
+    // Honeycomb: CLI > config file > env var
+    if (auto val = program.present("--honeycomb-api-key")) {
+        config->honeycombApiKey = *val;
+    } else if (config->honeycombApiKey.empty()) {
+        if (const char* envKey = std::getenv("HONEYCOMB_API_KEY")) {
+            config->honeycombApiKey = envKey;
         }
     }
 
-    config->maxConversationExchanges = program.get<int>("--conversation-history");
-
-    // Honeycomb: CLI arg takes precedence, then env var
-    if (auto val = program.present("--honeycomb-api-key")) {
-        config->honeycombApiKey = *val;
-    } else if (const char* envKey = std::getenv("HONEYCOMB_API_KEY")) {
-        config->honeycombApiKey = envKey;
+    // Validate creature-id is set (from config file or CLI)
+    if (config->creatureId.empty()) {
+        std::cerr << "creature-id is required (set in config file or via --creature-id)" << std::endl;
+        std::cerr << program;
+        return nullptr;
     }
-    config->honeycombDataset = program.get<std::string>("--honeycomb-dataset");
-
-    config->creatureServerUrl = program.get<std::string>("--creature-server-url");
-    config->creatureId = program.get<std::string>("--creature-id");
-    config->resumePlaylist = !program.get<bool>("--no-resume-playlist");
 
     return config;
 }

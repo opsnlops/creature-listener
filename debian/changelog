@@ -1,3 +1,14 @@
+creature-listener (0.3.0) unstable; urgency=medium
+
+  * YAML config file support (--config-path), matching creature-agent pattern.
+  * System prompt, LLM settings, creature ID, wake word models, VAD, and
+    tracing are all configurable via the YAML file.
+  * CLI simplified to --config-path plus a handful of overrides for dev/testing.
+  * Sample config installed to /etc/creature-listener.yaml in .deb package.
+  * systemd service uses config file instead of env var expansion.
+
+ -- April White <april@creature.engineering>  Tue, 25 Mar 2026 22:30:00 +0000
+
 creature-listener (0.2.0) unstable; urgency=medium
 
   * Add OpenTelemetry distributed tracing with OTLP HTTP export to Honeycomb.

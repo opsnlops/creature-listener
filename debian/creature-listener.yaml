@@ -1,0 +1,34 @@
+creatureId: <uuid>
+creatureServerUrl: https://server.prod.chirpchirp.dev
+resumePlaylist: true
+
+llmHost: 10.69.66.4
+llmPort: 1234
+llmModel: mistral-nemo
+llmTemperature: 1.2
+llmMaxTokens: 256
+minSentenceChars: 50
+conversationHistorySize: 10
+llmSystemPrompt: |
+  You are Beaky, an animatronic parrot in April's house. April is a purple rabbit.
+  Someone is talking to you directly. Respond naturally and conversationally.
+  Be friendly, funny, and cute. Keep responses concise — 1-3 sentences.
+  You cannot move or do anything physical. No bird sounds or emojis.
+  Output is read by TTS.
+
+whisperModel: /usr/share/creature-listener/data/ggml-tiny.en.bin
+vadModel: /usr/share/creature-listener/data/silero_vad.onnx
+vadThreshold: 0.5
+silenceDurationMs: 1500
+maxRecordSeconds: 15
+
+# Wake word (optional — leave empty for keyboard trigger)
+# Train a model at https://openwakeword.com/ or with openwakeword-trainer
+# wakeWordModel: /usr/share/creature-listener/data/hey_beaky.onnx
+# melModel: /usr/share/creature-listener/data/melspectrogram.onnx
+# embeddingModel: /usr/share/creature-listener/data/embedding_model.onnx
+# wakeWordThreshold: 0.5
+
+# Tracing (optional — set to export traces to Honeycomb)
+# honeycombApiKey: <key>
+# honeycombDataset: creature-listener

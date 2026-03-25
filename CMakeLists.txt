@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.2.0"
+        VERSION "0.3.0"
         DESCRIPTION "Wake word conversational interface for Beaky"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
@@ -78,6 +78,19 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/p-ranav/argparse.git
 )
 FetchContent_MakeAvailable(argparse)
+
+# yaml-cpp - config file parsing
+message(STATUS "Fetching yaml-cpp...")
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG 0.8.0
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(yaml-cpp)
 
 # nlohmann_json
 message(STATUS "Fetching nlohmann_json...")
@@ -276,6 +289,8 @@ set(LISTENER_SOURCES
     src/llm/LLMClient.cpp
     src/llm/ConversationHistory.h
     src/llm/ConversationHistory.cpp
+    src/config/ConfigFile.h
+    src/config/ConfigFile.cpp
     src/server/CreatureServerClient.h
     src/server/CreatureServerClient.cpp
     src/trace/Trace.h
@@ -297,6 +312,7 @@ target_link_libraries(creature-listener PRIVATE
     spdlog::spdlog
     argparse
     nlohmann_json::nlohmann_json
+    yaml-cpp::yaml-cpp
     whisper
     CLFML::lowwi
     portaudio_static
