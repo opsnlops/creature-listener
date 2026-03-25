@@ -1,3 +1,11 @@
+creature-listener (0.3.1) unstable; urgency=medium
+
+  * Fix RPATH for bundled ONNX Runtime shared library — use
+    set_target_properties instead of CMAKE_INSTALL_RPATH (must be set
+    after add_executable, not before).
+
+ -- April White <april@creature.engineering>  Tue, 25 Mar 2026 23:00:00 +0000
+
 creature-listener (0.3.0) unstable; urgency=medium
 
   * YAML config file support (--config-path), matching creature-agent pattern.
