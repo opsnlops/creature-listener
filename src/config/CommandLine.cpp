@@ -1,6 +1,7 @@
 #include "config/CommandLine.h"
 
 #include <argparse/argparse.hpp>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -114,6 +115,14 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
         .default_value(10)
         .scan<'i', int>();
 
+    // Tracing (OpenTelemetry)
+    program.add_argument("--honeycomb-api-key")
+        .help("Honeycomb API key for trace export (or set HONEYCOMB_API_KEY env var)");
+
+    program.add_argument("--honeycomb-dataset")
+        .help("Honeycomb dataset name")
+        .default_value(std::string("creature-listener"));
+
     // Creature server
     program.add_argument("--creature-server-url")
         .help("creature-server base URL")
@@ -191,6 +200,14 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
     }
 
     config->maxConversationExchanges = program.get<int>("--conversation-history");
+
+    // Honeycomb: CLI arg takes precedence, then env var
+    if (auto val = program.present("--honeycomb-api-key")) {
+        config->honeycombApiKey = *val;
+    } else if (const char* envKey = std::getenv("HONEYCOMB_API_KEY")) {
+        config->honeycombApiKey = envKey;
+    }
+    config->honeycombDataset = program.get<std::string>("--honeycomb-dataset");
 
     config->creatureServerUrl = program.get<std::string>("--creature-server-url");
     config->creatureId = program.get<std::string>("--creature-id");

@@ -45,6 +45,10 @@ struct Configuration {
     // Conversation history
     int maxConversationExchanges = 10;
 
+    // Tracing (OpenTelemetry)
+    std::string honeycombApiKey;
+    std::string honeycombDataset = "creature-listener";
+
     // Creature server
     std::string creatureServerUrl = "https://server.prod.chirpchirp.dev";
     std::string creatureId;

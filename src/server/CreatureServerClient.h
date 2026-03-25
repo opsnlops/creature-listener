@@ -13,20 +13,25 @@ public:
 
     /// Start a streaming ad-hoc session for the given creature.
     /// Returns the session_id on success, or empty string on failure.
-    std::string startSession(const std::string& creatureId, bool resumePlaylist);
+    /// If traceparent is provided, it's sent as a W3C traceparent header.
+    std::string startSession(const std::string& creatureId, bool resumePlaylist,
+                             const std::string& traceparent = "");
 
     /// Send a sentence to an active streaming session.
     /// Returns true on success.
-    bool addText(const std::string& sessionId, const std::string& text);
+    bool addText(const std::string& sessionId, const std::string& text,
+                 const std::string& traceparent = "");
 
     /// Finish a streaming session (triggers TTS + animation + playback).
     /// Returns true on success.
-    bool finishSession(const std::string& sessionId);
+    bool finishSession(const std::string& sessionId,
+                       const std::string& traceparent = "");
 
 private:
     /// Perform a POST request and return the response body.
     /// Returns empty string on failure.
-    std::string post(const std::string& path, const std::string& jsonBody);
+    std::string post(const std::string& path, const std::string& jsonBody,
+                     const std::string& traceparent = "");
 
     std::string baseUrl_;
 };

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.1.0"
+        VERSION "0.2.0"
         DESCRIPTION "Wake word conversational interface for Beaky"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
@@ -109,6 +109,35 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(whisper)
+
+# OpenTelemetry - distributed tracing
+message(STATUS "Fetching OpenTelemetry...")
+set(BUILD_TESTING OFF CACHE BOOL "Disable testing" FORCE)
+set(WITH_EXAMPLES OFF CACHE BOOL "Disable examples" FORCE)
+set(WITH_BENCHMARK OFF CACHE BOOL "Disable benchmarks" FORCE)
+set(WITH_FUNC_TESTS OFF CACHE BOOL "Disable functional tests" FORCE)
+set(OPENTELEMETRY_INSTALL OFF CACHE BOOL "Disable install" FORCE)
+set(WITH_GTEST OFF CACHE BOOL "Disable gtest in OpenTelemetry" FORCE)
+set(WITH_ABI_VERSION_1 OFF CACHE BOOL "Disable ABI version 1" FORCE)
+set(WITH_ABI_VERSION_2 ON CACHE BOOL "Enable ABI version 2" FORCE)
+set(WITH_OTLP_HTTP ON CACHE BOOL "Enable OTLP HTTP exporter" FORCE)
+set(WITH_OTLP_GRPC OFF CACHE BOOL "Disable OTLP gRPC exporter" FORCE)
+set(WITH_METRICS_API OFF CACHE BOOL "Disable metrics API" FORCE)
+set(WITH_METRICS_SDK OFF CACHE BOOL "Disable metrics SDK" FORCE)
+set(WITH_ZIPKIN OFF CACHE BOOL "Disable Zipkin" FORCE)
+set(WITH_JAEGER OFF CACHE BOOL "Disable Jaeger" FORCE)
+set(WITH_PROMETHEUS OFF CACHE BOOL "Disable Prometheus" FORCE)
+set(WITH_LOGS_PREVIEW OFF CACHE BOOL "Disable logs preview" FORCE)
+set(OPENTELEMETRY_BUILD_SHARED_LIBS OFF CACHE BOOL "Build OpenTelemetry as static" FORCE)
+
+FetchContent_Declare(
+        opentelemetry-cpp
+        GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-cpp.git
+        GIT_TAG v1.26.0
+        GIT_SHALLOW TRUE
+        GIT_SUBMODULES ""  # Skip submodules - nlohmann_json already fetched
+)
+FetchContent_MakeAvailable(opentelemetry-cpp)
 
 # ONNX Runtime - needed by LOWWI for wake word detection
 # Provide it before LOWWI so it finds the TARGET and skips its own platform-hardcoded fetch
@@ -249,6 +278,8 @@ set(LISTENER_SOURCES
     src/llm/ConversationHistory.cpp
     src/server/CreatureServerClient.h
     src/server/CreatureServerClient.cpp
+    src/trace/Trace.h
+    src/trace/Trace.cpp
     src/util/namespace-stuffs.h
 )
 
@@ -271,6 +302,10 @@ target_link_libraries(creature-listener PRIVATE
     portaudio_static
     CURL::libcurl
     Threads::Threads
+    opentelemetry_trace
+    opentelemetry_exporter_otlp_http
+    opentelemetry_resources
+    opentelemetry_common
 )
 
 # --- Install ---

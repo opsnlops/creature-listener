@@ -29,7 +29,8 @@ size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* userdata) {
 }  // anonymous namespace
 
 std::string CreatureServerClient::post(const std::string& path,
-                                        const std::string& jsonBody) {
+                                        const std::string& jsonBody,
+                                        const std::string& traceparent) {
     std::string url = baseUrl_ + path;
 
     CURL* curl = curl_easy_init();
@@ -42,6 +43,10 @@ std::string CreatureServerClient::post(const std::string& path,
 
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, "Content-Type: application/json");
+    if (!traceparent.empty()) {
+        std::string tpHeader = "traceparent: " + traceparent;
+        headers = curl_slist_append(headers, tpHeader.c_str());
+    }
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
@@ -72,7 +77,8 @@ std::string CreatureServerClient::post(const std::string& path,
 }
 
 std::string CreatureServerClient::startSession(const std::string& creatureId,
-                                                bool resumePlaylist) {
+                                                bool resumePlaylist,
+                                                const std::string& traceparent) {
     json body = {
         {"creature_id", creatureId},
         {"resume_playlist", resumePlaylist}
@@ -80,7 +86,8 @@ std::string CreatureServerClient::startSession(const std::string& creatureId,
 
     info("Starting streaming session for creature {}", creatureId);
 
-    std::string response = post("/api/v1/animation/ad-hoc-stream/start", body.dump());
+    std::string response = post("/api/v1/animation/ad-hoc-stream/start",
+                                body.dump(), traceparent);
     if (response.empty()) {
         return "";
     }
@@ -98,7 +105,8 @@ std::string CreatureServerClient::startSession(const std::string& creatureId,
 }
 
 bool CreatureServerClient::addText(const std::string& sessionId,
-                                    const std::string& text) {
+                                    const std::string& text,
+                                    const std::string& traceparent) {
     json body = {
         {"session_id", sessionId},
         {"text", text}
@@ -106,7 +114,8 @@ bool CreatureServerClient::addText(const std::string& sessionId,
 
     debug("Sending text to session {}: \"{}\"", sessionId, text);
 
-    std::string response = post("/api/v1/animation/ad-hoc-stream/text", body.dump());
+    std::string response = post("/api/v1/animation/ad-hoc-stream/text",
+                                body.dump(), traceparent);
     if (response.empty()) {
         return false;
     }
@@ -122,14 +131,16 @@ bool CreatureServerClient::addText(const std::string& sessionId,
     }
 }
 
-bool CreatureServerClient::finishSession(const std::string& sessionId) {
+bool CreatureServerClient::finishSession(const std::string& sessionId,
+                                          const std::string& traceparent) {
     json body = {
         {"session_id", sessionId}
     };
 
     info("Finishing streaming session {}", sessionId);
 
-    std::string response = post("/api/v1/animation/ad-hoc-stream/finish", body.dump());
+    std::string response = post("/api/v1/animation/ad-hoc-stream/finish",
+                                body.dump(), traceparent);
     if (response.empty()) {
         return false;
     }

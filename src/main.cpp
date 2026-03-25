@@ -22,6 +22,7 @@
 #include "llm/LLMClient.h"
 #include "server/CreatureServerClient.h"
 #include "stt/SpeechToText.h"
+#include "trace/Trace.h"
 #include "wakeword/WakeWordDetector.h"
 
 #include "util/namespace-stuffs.h"
@@ -95,6 +96,18 @@ int main(int argc, char* argv[]) {
     if (config->listDevices) {
         AudioCapture::listDevices();
         return 0;
+    }
+
+    // --- Initialize tracing ---
+    creatures::tracer = std::make_shared<Tracer>();
+    if (!config->honeycombApiKey.empty()) {
+        creatures::tracer->initialize("creature-listener",
+            fmt::format("{}.{}.{}", CREATURE_LISTENER_VERSION_MAJOR,
+                        CREATURE_LISTENER_VERSION_MINOR,
+                        CREATURE_LISTENER_VERSION_PATCH),
+            config->honeycombApiKey, config->honeycombDataset);
+    } else {
+        info("No Honeycomb API key — tracing disabled (set HONEYCOMB_API_KEY or --honeycomb-api-key)");
     }
 
     // --- Initialize components ---
@@ -305,12 +318,38 @@ int main(int argc, char* argv[]) {
         }
 
         case ListenerState::Transcribing: {
+            // Create a root span for the entire conversation turn
+            auto turnSpan = creatures::tracer
+                ? creatures::tracer->startSpan("conversation.turn")
+                : nullptr;
+
             auto buffer = audioCapture.getRecordingBuffer();
+            if (turnSpan) {
+                turnSpan->setAttribute("audio.samples", static_cast<int64_t>(buffer.size()));
+                turnSpan->setAttribute("audio.duration_sec",
+                    static_cast<double>(buffer.size()) / 16000.0);
+                turnSpan->setAttribute("creature.id", config->creatureId);
+            }
+
+            // STT span
+            auto sttSpan = creatures::tracer
+                ? creatures::tracer->startChildSpan("stt.transcribe", turnSpan)
+                : nullptr;
+
             std::string transcript = stt.transcribe(buffer);
+
+            if (sttSpan) {
+                sttSpan->setAttribute("stt.transcript", transcript);
+                sttSpan->setAttribute("stt.transcript_length",
+                    static_cast<int64_t>(transcript.size()));
+                if (transcript.empty()) sttSpan->setError("Empty transcription");
+                else sttSpan->setSuccess();
+            }
 
             if (transcript.empty()) {
                 warn("Empty transcription, returning to listening");
                 state = ListenerState::Listening;
+                if (turnSpan) turnSpan->setError("Empty transcription");
             } else {
                 info("Transcript: \"{}\"", transcript);
                 state = ListenerState::Thinking;
@@ -318,33 +357,68 @@ int main(int argc, char* argv[]) {
             info("State: TRANSCRIBING -> {}", stateToString(state));
 
             if (state == ListenerState::Thinking) {
+                // Generate traceparent from the turn span for server propagation
+                std::string tp = turnSpan ? turnSpan->traceparent() : "";
+
                 // Start streaming session with creature-server
+                auto sessionSpan = creatures::tracer
+                    ? creatures::tracer->startChildSpan("server.streaming_session", turnSpan)
+                    : nullptr;
+
                 std::string sessionId = server.startSession(
-                    config->creatureId, config->resumePlaylist);
+                    config->creatureId, config->resumePlaylist, tp);
 
                 if (sessionId.empty()) {
                     error("Failed to start streaming session");
+                    if (sessionSpan) sessionSpan->setError("Failed to start session");
+                    if (turnSpan) turnSpan->setError("Server session failed");
                     state = ListenerState::Error;
                     break;
+                }
+
+                if (sessionSpan) {
+                    sessionSpan->setAttribute("session.id", sessionId);
                 }
 
                 info("State: THINKING -> SPEAKING (streaming)");
                 state = ListenerState::Speaking;
 
+                // LLM span
+                auto llmSpan = creatures::tracer
+                    ? creatures::tracer->startChildSpan("llm.respond", turnSpan)
+                    : nullptr;
+
                 // Stream LLM response, sending each sentence to creature-server
+                int sentenceCount = 0;
                 std::string fullResponse = llm.respondStreaming(
                     transcript,
                     [&](const std::string& sentence, [[maybe_unused]] int idx) {
-                        server.addText(sessionId, sentence);
+                        server.addText(sessionId, sentence, tp);
+                        sentenceCount++;
                     });
+
+                if (llmSpan) {
+                    llmSpan->setAttribute("llm.response_length",
+                        static_cast<int64_t>(fullResponse.size()));
+                    llmSpan->setAttribute("llm.sentence_count",
+                        static_cast<int64_t>(sentenceCount));
+                    if (fullResponse.empty()) llmSpan->setError("Empty LLM response");
+                    else llmSpan->setSuccess();
+                }
 
                 if (fullResponse.empty()) {
                     error("LLM returned empty response");
-                    // Still finish the session so creature-server cleans up
                 }
 
                 // Finish the session — triggers TTS + animation + playback
-                server.finishSession(sessionId);
+                server.finishSession(sessionId, tp);
+
+                if (sessionSpan) sessionSpan->setSuccess();
+                if (turnSpan) {
+                    turnSpan->setAttribute("response.sentences",
+                        static_cast<int64_t>(sentenceCount));
+                    turnSpan->setSuccess();
+                }
 
                 info("Conversation turn complete, returning to listening");
                 state = ListenerState::Listening;
