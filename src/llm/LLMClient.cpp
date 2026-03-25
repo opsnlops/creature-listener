@@ -186,6 +186,10 @@ std::string LLMClient::respondStreaming(const std::string& prompt,
     }
     messages.push_back({{"role", "user"}, {"content", prompt}});
 
+    if (!historyMessages.empty()) {
+        info("Conversation history: {} previous messages included", historyMessages.size());
+    }
+
     json body = {
         {"model", model_},
         {"messages", messages},
@@ -265,6 +269,10 @@ std::string LLMClient::respondStreaming(const std::string& prompt,
     }
     if (!cleanResponse.empty()) {
         history_.addExchange(prompt, cleanResponse);
+        info("Saved to history — user: \"{}...\" assistant: \"{}...\"",
+             prompt.substr(0, 50), cleanResponse.substr(0, 50));
+    } else {
+        warn("Empty response — not saving to conversation history");
     }
 
     return fullResponse;

@@ -9,11 +9,13 @@ llmTemperature: 1.2
 llmMaxTokens: 256
 minSentenceChars: 50
 conversationHistorySize: 10
+
+# System prompt — customize this for each creature's personality
 llmSystemPrompt: |
-  You are Beaky, an animatronic parrot in April's house. April is a purple rabbit.
+  You are an animatronic creature in April's house. April is a purple rabbit.
   Someone is talking to you directly. Respond naturally and conversationally.
   Be friendly, funny, and cute. Keep responses concise — 1-3 sentences.
-  You cannot move or do anything physical. No bird sounds or emojis.
+  You cannot move or do anything physical. No emojis.
   Output is read by TTS.
 
 whisperModel: /usr/share/creature-listener/data/ggml-tiny.en.bin
@@ -24,7 +26,7 @@ maxRecordSeconds: 15
 
 # Wake word (optional — leave empty for keyboard trigger)
 # Train a model at https://openwakeword.com/ or with openwakeword-trainer
-# wakeWordModel: /usr/share/creature-listener/data/hey_beaky.onnx
+# wakeWordModel: /usr/share/creature-listener/data/<wakeword>.onnx
 # melModel: /usr/share/creature-listener/data/melspectrogram.onnx
 # embeddingModel: /usr/share/creature-listener/data/embedding_model.onnx
 # wakeWordThreshold: 0.5

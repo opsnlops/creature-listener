@@ -38,7 +38,7 @@ bool WakeWordDetector::init(const std::string& wakeWordModelPath,
 
         // Configure the wake word
         CLFML::LOWWI::Lowwi_word_t word;
-        word.phrase = "hey_beaky";
+        word.phrase = "wakeword";
         word.model_path = wakeWordModelPath;
         word.threshold = threshold;
         word.min_activations = 5;

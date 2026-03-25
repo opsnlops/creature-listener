@@ -32,12 +32,7 @@ struct Configuration {
     std::string llmHost = "10.69.66.4";
     int llmPort = 1234;
     std::string llmModel = "mistral-nemo";
-    std::string llmSystemPrompt =
-        "You are Beaky, an animatronic parrot in April's house. April is a purple rabbit. "
-        "Someone is talking to you directly. Respond naturally and conversationally. "
-        "Be friendly, funny, and cute. Keep responses concise — 1-3 sentences. "
-        "You cannot move or do anything physical. No bird sounds or emojis. "
-        "Output is read by TTS.";
+    std::string llmSystemPrompt;  // No default — must be set in config file
     float llmTemperature = 1.2f;
     int llmMaxTokens = 256;
     int minSentenceChars = 50;

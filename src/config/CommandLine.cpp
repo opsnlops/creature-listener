@@ -19,7 +19,7 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
                     CREATURE_LISTENER_VERSION_MINOR,
                     CREATURE_LISTENER_VERSION_PATCH));
 
-    program.add_description("Wake word conversational interface for Beaky");
+    program.add_description("Wake word conversational interface for April's Creature Workshop");
 
     program.add_argument("--config-path")
         .help("Path to YAML configuration file")
@@ -118,10 +118,14 @@ std::unique_ptr<Configuration> parseCommandLine(int argc, char* argv[]) {
         }
     }
 
-    // Validate creature-id is set (from config file or CLI)
+    // Validate required fields
     if (config->creatureId.empty()) {
-        std::cerr << "creature-id is required (set in config file or via --creature-id)" << std::endl;
+        std::cerr << "creatureId is required (set in config file or via --creature-id)" << std::endl;
         std::cerr << program;
+        return nullptr;
+    }
+    if (config->llmSystemPrompt.empty()) {
+        std::cerr << "llmSystemPrompt is required (set in config file)" << std::endl;
         return nullptr;
     }
 

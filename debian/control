@@ -12,7 +12,7 @@ Homepage: https://github.com/opsnlops/creature-listener
 Package: creature-listener
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Wake word conversational interface for Beaky
- Listens for the wake word "Beaky", records speech, transcribes it
- with whisper.cpp, streams the response from an LLM, and sends
- sentences to creature-server for TTS and animated playback.
+Description: Wake word conversational interface for April's Creature Workshop
+ Listens for a wake word, records speech, transcribes it with whisper.cpp,
+ streams the response from an LLM, and sends sentences to creature-server
+ for TTS and animated playback.

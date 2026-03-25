@@ -22,7 +22,7 @@ using WakeWordCallback = std::function<void()>;
 /// Requires three ONNX model files:
 ///   - melspectrogram.onnx   (shared audio preprocessing)
 ///   - embedding_model.onnx  (shared feature extraction)
-///   - <wakeword>.onnx       (per-word classifier, e.g. hey_beaky.onnx)
+///   - <wakeword>.onnx       (per-word classifier, trained for your creature)
 class WakeWordDetector {
 public:
     WakeWordDetector();

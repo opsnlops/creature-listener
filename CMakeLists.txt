@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.3.1"
-        DESCRIPTION "Wake word conversational interface for Beaky"
+        VERSION "0.4.0"
+        DESCRIPTION "Wake word conversational interface for April's Creature Workshop"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
 
@@ -328,10 +328,12 @@ target_link_libraries(creature-listener PRIVATE
 
 # --- Install ---
 
-# Set RPATH so the binary finds the bundled ONNX Runtime shared lib
+# Set RPATH so the installed binary finds the bundled ONNX Runtime shared lib.
+# During build, use the build-tree RPATH so local dev works too.
 set_target_properties(creature-listener PROPERTIES
     INSTALL_RPATH "/usr/lib/creature-listener"
-    BUILD_WITH_INSTALL_RPATH ON
+    BUILD_WITH_INSTALL_RPATH OFF
+    BUILD_RPATH "${onnxruntime_SOURCE_DIR}/lib"
 )
 
 install(TARGETS creature-listener

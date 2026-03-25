@@ -1,5 +1,5 @@
 //
-// creature-listener — Wake word conversational interface for Beaky
+// creature-listener — Wake word conversational interface for April's Creature Workshop
 //
 
 #include <atomic>
@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
 
     info("=== creature-listener ready ===");
     if (haveWakeWord) {
-        info("Say \"Beaky\" to start a conversation");
+        info("Say the wake word to start a conversation");
     } else {
         info("Press Enter to simulate wake word detection");
     }

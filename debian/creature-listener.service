@@ -1,5 +1,5 @@
 [Unit]
-Description=Creature Listener - Wake Word Interface for Beaky
+Description=Creature Listener - Wake Word Conversational Interface
 After=network-online.target sound.target
 Wants=network-online.target
 
