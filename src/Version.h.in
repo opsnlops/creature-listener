@@ -1,0 +1,5 @@
+#pragma once
+
+#define CREATURE_LISTENER_VERSION_MAJOR @creature-listener_VERSION_MAJOR@
+#define CREATURE_LISTENER_VERSION_MINOR @creature-listener_VERSION_MINOR@
+#define CREATURE_LISTENER_VERSION_PATCH @creature-listener_VERSION_PATCH@

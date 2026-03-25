@@ -1,0 +1,21 @@
+[Unit]
+Description=Creature Listener - Wake Word Interface for Beaky
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/default/creature-listener
+ExecStart=/usr/bin/creature-listener \
+    --creature-id ${CREATURE_ID} \
+    --whisper-model /usr/share/creature-listener/data/ggml-tiny.en.bin \
+    --vad-model /usr/share/creature-listener/data/silero_vad.onnx \
+    --creature-server-url ${CREATURE_SERVER_URL} \
+    --llm-host ${LLM_HOST} \
+    --llm-port ${LLM_PORT}
+Restart=on-failure
+RestartSec=5
+# Run below creature-controller priority
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cmake -B build \
+		-DCMAKE_MAKE_PROGRAM=ninja -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_auto_build:
+	ninja -C build -j4
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/creature-listener ninja -C build install
+	# Install data files
+	install -d $(CURDIR)/debian/creature-listener/usr/share/creature-listener/data
+	if [ -f build/data/ggml-tiny.en.bin ]; then \
+		install -m644 build/data/ggml-tiny.en.bin \
+			$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/; \
+	fi
+	if [ -f build/data/silero_vad.onnx ]; then \
+		install -m644 build/data/silero_vad.onnx \
+			$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/; \
+	fi
+
+override_dh_auto_test:
+	# No tests yet
+	:
+
+override_dh_dwz:
+	# Skip dwz; statically linked C++ binary may lack expected debug sections
+	:

@@ -1,0 +1,17 @@
+Source: creature-listener
+Section: electronics
+Priority: optional
+Maintainer: April White <april@creature.engineering>
+Build-Depends: debhelper-compat (= 13), cmake, ninja-build, pkg-config,
+ libcurl4-openssl-dev, libssl-dev, libasound2-dev
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/opsnlops/creature-listener
+
+Package: creature-listener
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Wake word conversational interface for Beaky
+ Listens for the wake word "Beaky", records speech, transcribes it
+ with whisper.cpp, streams the response from an LLM, and sends
+ sentences to creature-server for TTS and animated playback.
