@@ -124,6 +124,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(whisper)
 
 # OpenTelemetry - distributed tracing
+# On Debian Trixie the system protobuf + abseil are compatible with OTel.
+# On macOS, Homebrew protobuf is too new — let OTel fetch its own.
 message(STATUS "Fetching OpenTelemetry...")
 set(BUILD_TESTING OFF CACHE BOOL "Disable testing" FORCE)
 set(WITH_EXAMPLES OFF CACHE BOOL "Disable examples" FORCE)

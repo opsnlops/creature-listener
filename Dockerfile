@@ -13,9 +13,12 @@ RUN apt-get install -y --no-install-recommends \
         git \
         libasound2-dev \
         libcurl4-openssl-dev \
+        libabsl-dev \
+        libprotobuf-dev \
         libssl-dev \
         ninja-build \
-        pkg-config
+        pkg-config \
+        protobuf-compiler
 
 # Copy source into a directory named for the source package
 RUN mkdir -p /build/creature-listener

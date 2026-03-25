@@ -3,7 +3,8 @@ Section: electronics
 Priority: optional
 Maintainer: April White <april@creature.engineering>
 Build-Depends: debhelper-compat (= 13), cmake, ninja-build, pkg-config,
- libcurl4-openssl-dev, libssl-dev, libasound2-dev
+ libcurl4-openssl-dev, libssl-dev, libasound2-dev,
+ libabsl-dev, libprotobuf-dev, protobuf-compiler
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 Homepage: https://github.com/opsnlops/creature-listener
