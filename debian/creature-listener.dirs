@@ -1,3 +1,4 @@
 usr/bin
+usr/lib/creature-listener
 usr/share/creature-listener/data
 usr/lib/systemd/system

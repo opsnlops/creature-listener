@@ -32,3 +32,7 @@ override_dh_auto_test:
 override_dh_dwz:
 	# Skip dwz; statically linked C++ binary may lack expected debug sections
 	:
+
+override_dh_shlibdeps:
+	# Tell dpkg-shlibdeps where to find the bundled ONNX Runtime shared lib
+	dh_shlibdeps -l$(CURDIR)/debian/creature-listener/usr/lib/creature-listener

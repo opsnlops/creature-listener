@@ -40,6 +40,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 endif()
 
+# Build all FetchContent dependencies as static libraries.
+# This produces a self-contained binary — no loose .so files to install
+# (except ONNX Runtime which only ships shared).
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
+
+# Prevent FetchContent targets from generating install rules
+set(CMAKE_SKIP_INSTALL_RULES OFF)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
 # --- Dependencies via FetchContent ---
 
 # fmt
@@ -90,6 +99,8 @@ set(WHISPER_NO_METAL ON CACHE BOOL "Disable Metal (Pi target)" FORCE)
 set(GGML_METAL OFF CACHE BOOL "Disable Metal backend" FORCE)
 set(GGML_CUDA OFF CACHE BOOL "Disable CUDA backend" FORCE)
 set(GGML_VULKAN OFF CACHE BOOL "Disable Vulkan backend" FORCE)
+set(GGML_STATIC ON CACHE BOOL "Build ggml as static" FORCE)
+set(WHISPER_BUILD_SHARED_LIBS OFF CACHE BOOL "Build whisper as static" FORCE)
 
 FetchContent_Declare(
         whisper
@@ -121,14 +132,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(onnxruntime)
 
-# Create an onnxruntime target that LOWWI will find
+# Create an onnxruntime target that LOWWI will find.
+# The prebuilt package only ships shared libs, so we link the .so/.dylib
+# but set RPATH so the binary finds it at runtime. For the Debian package,
+# we install the shared lib alongside the binary.
 add_library(onnxruntime INTERFACE)
 target_include_directories(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/include)
 if(APPLE)
-    target_link_libraries(onnxruntime INTERFACE "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.dylib")
+    set(ONNXRUNTIME_LIB "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.dylib")
 else()
-    target_link_libraries(onnxruntime INTERFACE "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so")
+    set(ONNXRUNTIME_LIB "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so")
 endif()
+target_link_libraries(onnxruntime INTERFACE "${ONNXRUNTIME_LIB}")
 
 # LOWWI - wake word detection (openWakeWord ONNX models)
 message(STATUS "Fetching LOWWI...")
@@ -253,12 +268,25 @@ target_link_libraries(creature-listener PRIVATE
     nlohmann_json::nlohmann_json
     whisper
     CLFML::lowwi
-    portaudio
+    portaudio_static
     CURL::libcurl
     Threads::Threads
 )
 
 # --- Install ---
+
+# Set RPATH so the binary finds the bundled ONNX Runtime shared lib
+set(CMAKE_INSTALL_RPATH "/usr/lib/creature-listener")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
 install(TARGETS creature-listener
         RUNTIME DESTINATION bin
 )
+
+# Install the ONNX Runtime shared library (only ships as .so)
+if(NOT APPLE)
+    file(GLOB ONNXRUNTIME_LIBS "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime*.so*")
+    install(FILES ${ONNXRUNTIME_LIBS}
+            DESTINATION lib/creature-listener
+    )
+endif()
