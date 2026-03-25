@@ -97,7 +97,8 @@ Pick a device index and pass it with `--audio-device N`.
 After installing the `.deb`:
 
 ```bash
-# Edit the config file — set creatureId and system prompt for your creature
+# Copy the sample config and edit — set creatureId and system prompt
+sudo cp /etc/creature-listener.yaml.sample /etc/creature-listener.yaml
 sudo vim /etc/creature-listener.yaml
 
 # Optionally set Honeycomb API key for tracing

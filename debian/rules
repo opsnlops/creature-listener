@@ -24,6 +24,10 @@ override_dh_auto_install:
 		install -m644 build/data/silero_vad.onnx \
 			$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/; \
 	fi
+	# Install sample config — never overwrite user's actual config
+	install -d $(CURDIR)/debian/creature-listener/etc
+	install -m644 debian/creature-listener.yaml \
+		$(CURDIR)/debian/creature-listener/etc/creature-listener.yaml.sample
 
 override_dh_auto_test:
 	# No tests yet
