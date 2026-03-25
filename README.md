@@ -115,7 +115,7 @@ After installing the `.deb`:
 ```bash
 # Copy and edit the environment file
 sudo cp /etc/default/creature-listener.env.example /etc/default/creature-listener
-sudo nano /etc/default/creature-listener
+sudo vim /etc/default/creature-listener
 # Fill in CREATURE_ID, and optionally HONEYCOMB_API_KEY
 
 # Enable and start
