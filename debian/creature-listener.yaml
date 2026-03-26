@@ -18,7 +18,7 @@ llmSystemPrompt: |
   You cannot move or do anything physical. No emojis.
   Output is read by TTS.
 
-whisperModel: /usr/share/creature-listener/data/ggml-tiny.en.bin
+whisperModel: /usr/share/creature-listener/data/ggml-tiny.en-q5_1.bin
 vadModel: /usr/share/creature-listener/data/silero_vad.onnx
 vadThreshold: 0.5
 silenceDurationMs: 1500

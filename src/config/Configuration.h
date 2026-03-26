@@ -20,7 +20,7 @@ struct Configuration {
     float wakeWordThreshold = 0.5f;
 
     // Whisper STT
-    std::string whisperModelPath = "/usr/share/creature-listener/data/ggml-tiny.en.bin";
+    std::string whisperModelPath = "/usr/share/creature-listener/data/ggml-tiny.en-q5_1.bin";
 
     // VAD
     std::string vadModelPath = "/usr/share/creature-listener/data/silero_vad.onnx";

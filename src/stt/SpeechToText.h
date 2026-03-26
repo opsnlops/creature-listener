@@ -28,6 +28,9 @@ private:
     /// Check if a transcription is a known whisper hallucination pattern.
     static bool isHallucination(const std::string& text);
 
+    /// Trim leading and trailing silence from audio to reduce processing time.
+    static std::vector<float> trimSilence(const std::vector<float>& samples);
+
     struct whisper_context* ctx_ = nullptr;
 };
 

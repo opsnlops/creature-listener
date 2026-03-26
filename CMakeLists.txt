@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.4.1"
+        VERSION "0.5.0"
         DESCRIPTION "Wake word conversational interface for April's Creature Workshop"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
@@ -221,7 +221,27 @@ find_package(CURL REQUIRED)
 set(CREATURE_DATA_DIR "${CMAKE_BINARY_DIR}/data")
 file(MAKE_DIRECTORY ${CREATURE_DATA_DIR})
 
-# Whisper tiny.en model (~75MB) - English-only, fast on Pi 5
+# Whisper tiny.en quantized model (~31MB) - faster on Pi 5, minimal quality loss
+set(WHISPER_MODEL_Q5 "${CREATURE_DATA_DIR}/ggml-tiny.en-q5_1.bin")
+if(NOT EXISTS ${WHISPER_MODEL_Q5})
+    message(STATUS "Downloading whisper tiny.en-q5_1 model (~31MB)...")
+    file(DOWNLOAD
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin"
+        ${WHISPER_MODEL_Q5}
+        SHOW_PROGRESS
+        STATUS WHISPER_DL_STATUS
+    )
+    list(GET WHISPER_DL_STATUS 0 WHISPER_DL_CODE)
+    if(NOT WHISPER_DL_CODE EQUAL 0)
+        message(WARNING "Failed to download whisper q5 model: ${WHISPER_DL_STATUS}")
+    else()
+        message(STATUS "Whisper q5 model downloaded to ${WHISPER_MODEL_Q5}")
+    endif()
+else()
+    message(STATUS "Whisper q5 model already present: ${WHISPER_MODEL_Q5}")
+endif()
+
+# Also download the full model as a fallback
 set(WHISPER_MODEL_FILE "${CREATURE_DATA_DIR}/ggml-tiny.en.bin")
 if(NOT EXISTS ${WHISPER_MODEL_FILE})
     message(STATUS "Downloading whisper tiny.en model (~75MB)...")
@@ -263,7 +283,7 @@ endif()
 
 # Install data files for packaging
 set(CREATURE_INSTALL_DATA_DIR "/usr/share/creature-listener/data")
-install(FILES ${WHISPER_MODEL_FILE}
+install(FILES ${WHISPER_MODEL_Q5} ${WHISPER_MODEL_FILE}
         DESTINATION ${CREATURE_INSTALL_DATA_DIR}
         COMPONENT creature-listener
 )

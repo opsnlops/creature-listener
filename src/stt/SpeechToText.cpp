@@ -1,6 +1,7 @@
 #include "stt/SpeechToText.h"
 
 #include <chrono>
+#include <cmath>
 
 #include "util/namespace-stuffs.h"
 
@@ -59,10 +60,20 @@ std::string SpeechToText::transcribe(const std::vector<float>& samples) {
         return "";
     }
 
+    // Trim leading and trailing silence to reduce whisper processing time.
+    // Speech on Pi 5 is CPU-bound, so shorter audio = faster transcription.
+    auto trimmed = trimSilence(samples);
+    if (trimmed.empty()) {
+        warn("Audio is all silence after trimming");
+        return "";
+    }
+
     auto startTime = std::chrono::steady_clock::now();
 
-    float durationSec = static_cast<float>(samples.size()) / 16000.0f;
-    info("Transcribing {:.1f}s of audio ({} samples)...", durationSec, samples.size());
+    float originalSec = static_cast<float>(samples.size()) / 16000.0f;
+    float trimmedSec = static_cast<float>(trimmed.size()) / 16000.0f;
+    info("Transcribing {:.1f}s of audio (trimmed from {:.1f}s, {} samples)...",
+         trimmedSec, originalSec, trimmed.size());
 
     struct whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     wparams.print_realtime = false;
@@ -76,8 +87,8 @@ std::string SpeechToText::transcribe(const std::vector<float>& samples) {
     wparams.language = "en";
     wparams.n_threads = 4;  // Use 4 of the Pi 5's cores
 
-    int result = whisper_full(ctx_, wparams, samples.data(),
-                              static_cast<int>(samples.size()));
+    int result = whisper_full(ctx_, wparams, trimmed.data(),
+                              static_cast<int>(trimmed.size()));
     if (result != 0) {
         error("Whisper transcription failed: error code {}", result);
         return "";
@@ -117,6 +128,43 @@ std::string SpeechToText::transcribe(const std::vector<float>& samples) {
     }
 
     return text;
+}
+
+std::vector<float> SpeechToText::trimSilence(const std::vector<float>& samples) {
+    // Compute RMS energy in 10ms windows (160 samples at 16kHz).
+    // Find the first and last windows above a threshold to trim silence.
+    static constexpr int kWindowSize = 160;
+    static constexpr float kSilenceThreshold = 0.005f;  // ~-46 dB
+    static constexpr int kPaddingSamples = 1600;  // 100ms padding to keep
+
+    if (static_cast<int>(samples.size()) < kWindowSize) return samples;
+
+    // Find first non-silent window
+    int firstSpeech = -1;
+    int lastSpeech = -1;
+    int numWindows = static_cast<int>(samples.size()) / kWindowSize;
+
+    for (int w = 0; w < numWindows; w++) {
+        float energy = 0.0f;
+        int offset = w * kWindowSize;
+        for (int i = 0; i < kWindowSize; i++) {
+            energy += samples[offset + i] * samples[offset + i];
+        }
+        float rms = std::sqrt(energy / kWindowSize);
+
+        if (rms > kSilenceThreshold) {
+            if (firstSpeech < 0) firstSpeech = offset;
+            lastSpeech = offset + kWindowSize;
+        }
+    }
+
+    if (firstSpeech < 0) return {};  // All silence
+
+    // Add padding around the speech
+    int start = std::max(0, firstSpeech - kPaddingSamples);
+    int end = std::min(static_cast<int>(samples.size()), lastSpeech + kPaddingSamples);
+
+    return std::vector<float>(samples.begin() + start, samples.begin() + end);
 }
 
 bool SpeechToText::isHallucination(const std::string& text) {
