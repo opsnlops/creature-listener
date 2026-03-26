@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.4.0"
+        VERSION "0.4.1"
         DESCRIPTION "Wake word conversational interface for April's Creature Workshop"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)

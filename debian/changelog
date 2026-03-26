@@ -1,3 +1,11 @@
+creature-listener (0.4.1) unstable; urgency=medium
+
+  * Support USB audio devices that don't do 16kHz (e.g. Sound Blaster Play! 3).
+  * Auto-detect device sample rate; open at native rate (48kHz) and decimate
+    to 16kHz in the callback. Falls back through 48k/32k/96k if needed.
+
+ -- April White <april@creature.engineering>  Tue, 25 Mar 2026 23:45:00 +0000
+
 creature-listener (0.4.0) unstable; urgency=medium
 
   * Generalize from Beaky-specific to any creature in April's Creature Workshop.

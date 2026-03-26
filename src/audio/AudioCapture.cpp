@@ -1,5 +1,6 @@
 #include "audio/AudioCapture.h"
 
+#include <cmath>
 #include <iostream>
 
 #include "util/namespace-stuffs.h"
@@ -61,17 +62,54 @@ bool AudioCapture::init(int deviceIndex) {
 
     info("Using audio device: {} (index {})", deviceInfo->name, inputParams.device);
 
+    // Try 16kHz first; if the device doesn't support it, fall back to
+    // its native rate and downsample.
+    deviceSampleRate_ = kTargetRate;
+    decimationFactor_ = 1;
+
     inputParams.channelCount = kChannels;
     inputParams.sampleFormat = paInt16;
     inputParams.suggestedLatency = deviceInfo->defaultLowInputLatency;
     inputParams.hostApiSpecificStreamInfo = nullptr;
 
-    PaError err = Pa_OpenStream(
+    PaError err = Pa_IsFormatSupported(&inputParams, nullptr, kTargetRate);
+    if (err != paFormatIsSupported) {
+        // 16kHz not supported — try the device's default rate
+        int nativeRate = static_cast<int>(deviceInfo->defaultSampleRate);
+        if (nativeRate % kTargetRate != 0) {
+            // Try common rates that are integer multiples of 16kHz
+            static const int fallbackRates[] = {48000, 32000, 96000};
+            bool found = false;
+            for (int rate : fallbackRates) {
+                err = Pa_IsFormatSupported(&inputParams, nullptr, rate);
+                if (err == paFormatIsSupported) {
+                    nativeRate = rate;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                error("Device doesn't support 16kHz or any compatible sample rate");
+                return false;
+            }
+        }
+
+        deviceSampleRate_ = nativeRate;
+        decimationFactor_ = nativeRate / kTargetRate;
+        info("Device doesn't support 16kHz — opening at {}Hz ({}:1 decimation)",
+             deviceSampleRate_, decimationFactor_);
+    }
+
+    // Calculate the frame size at the device rate to produce kFrameSize
+    // samples at 16kHz after decimation
+    int deviceFrameSize = kFrameSize * decimationFactor_;
+
+    err = Pa_OpenStream(
         &stream_,
         &inputParams,
         nullptr,  // no output
-        kSampleRate,
-        kFrameSize,
+        deviceSampleRate_,
+        deviceFrameSize,
         paClipOff,
         paCallback,
         this);
@@ -81,8 +119,13 @@ bool AudioCapture::init(int deviceIndex) {
         return false;
     }
 
-    info("Audio stream opened: {}Hz, {} samples/frame, mono",
-         kSampleRate, kFrameSize);
+    if (decimationFactor_ > 1) {
+        info("Audio stream opened: {}Hz (decimating to {}Hz), {} device samples/frame, mono",
+             deviceSampleRate_, kTargetRate, deviceFrameSize);
+    } else {
+        info("Audio stream opened: {}Hz, {} samples/frame, mono",
+             kTargetRate, kFrameSize);
+    }
     return true;
 }
 
@@ -146,7 +189,28 @@ int AudioCapture::paCallback(const void* input, [[maybe_unused]] void* output,
                               void* userData) {
     auto* self = static_cast<AudioCapture*>(userData);
     const auto* samples = static_cast<const int16_t*>(input);
-    self->processFrame(samples, static_cast<int>(frameCount));
+
+    if (self->decimationFactor_ <= 1) {
+        // No resampling needed — deliver directly
+        self->processFrame(samples, static_cast<int>(frameCount));
+    } else {
+        // Downsample: pick every Nth sample (simple decimation).
+        // For speech this is fine — we're going from 48kHz to 16kHz,
+        // and the content is well below 8kHz (Nyquist for 16kHz).
+        int decimated = static_cast<int>(frameCount) / self->decimationFactor_;
+        auto& acc = self->frameAccumulator_;
+
+        for (int i = 0; i < decimated; i++) {
+            acc.push_back(samples[i * self->decimationFactor_]);
+        }
+
+        // Deliver full frames
+        while (static_cast<int>(acc.size()) >= kFrameSize) {
+            self->processFrame(acc.data(), kFrameSize);
+            acc.erase(acc.begin(), acc.begin() + kFrameSize);
+        }
+    }
+
     return paContinue;
 }
 

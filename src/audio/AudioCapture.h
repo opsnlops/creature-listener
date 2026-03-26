@@ -10,13 +10,15 @@
 
 namespace creatures {
 
-/// Callback invoked with each audio frame (512 samples at 16kHz = 32ms).
+/// Callback invoked with each audio frame at 16kHz mono.
 using AudioFrameCallback = std::function<void(const int16_t* samples, int numSamples)>;
 
-/// PortAudio wrapper that captures 16kHz mono audio and delivers frames via callbacks.
+/// PortAudio wrapper that captures mono audio and delivers 16kHz frames via callbacks.
+/// If the device doesn't support 16kHz natively (e.g. USB devices that only do 48kHz),
+/// the stream opens at the device's native rate and downsamples to 16kHz in the callback.
 class AudioCapture {
 public:
-    static constexpr int kSampleRate = 16000;
+    static constexpr int kTargetRate = 16000;
     static constexpr int kFrameSize = 512;  // 32ms at 16kHz — matches Porcupine requirement
     static constexpr int kChannels = 1;
 
@@ -71,7 +73,15 @@ private:
     AudioFrameCallback frameCallback_;
     std::mutex callbackMutex_;
 
-    // Recording buffer: stores float samples for whisper
+    // Resampling: if the device doesn't support 16kHz, we open at the native
+    // rate and downsample. decimationFactor_ = deviceRate / 16000.
+    int deviceSampleRate_ = kTargetRate;
+    int decimationFactor_ = 1;  // 1 = no resampling, 3 = 48kHz→16kHz
+
+    // Accumulator for delivering fixed-size frames after resampling
+    std::vector<int16_t> frameAccumulator_;
+
+    // Recording buffer: stores float samples for whisper (at 16kHz)
     std::atomic<bool> recording_{false};
     mutable std::mutex recordingMutex_;
     std::vector<float> recordingBuffer_;

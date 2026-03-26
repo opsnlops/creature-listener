@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
     auto lastSpeechTime = std::chrono::steady_clock::now();
     bool speechDetected = false;
     size_t maxRecordingSamples = static_cast<size_t>(config->maxRecordSeconds)
-                                * AudioCapture::kSampleRate;
+                                * AudioCapture::kTargetRate;
 
     // Audio frame callback — routes frames to wake word and VAD
     audioCapture.setFrameCallback(
