@@ -1,3 +1,10 @@
+creature-listener (0.6.4) unstable; urgency=medium
+
+  * Add periodic debug logging for wake word audio flow — logs frame count
+    and RMS energy every ~16s to diagnose detection issues.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 02:30:00 +0000
+
 creature-listener (0.6.3) unstable; urgency=medium
 
   * Fix LOWWI model paths: LOWWI hardcodes "models/" relative to the working

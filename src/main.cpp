@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <iostream>
 #include <memory>
@@ -176,6 +177,7 @@ int main(int argc, char* argv[]) {
                                 * AudioCapture::kTargetRate;
 
     // Audio frame callback — routes frames to wake word and VAD
+    int wakeWordFrameCount = 0;
     audioCapture.setFrameCallback(
         [&](const int16_t* samples, int numSamples) {
             if (state == ListenerState::Listening && haveWakeWord) {
@@ -185,6 +187,18 @@ int main(int argc, char* argv[]) {
                     floatSamples[i] = static_cast<float>(samples[i]) / 32768.0f;
                 }
                 wakeWord.processFloat(floatSamples.data(), numSamples);
+
+                wakeWordFrameCount++;
+                if (wakeWordFrameCount % 500 == 0) {
+                    // Log every ~16 seconds to confirm audio is flowing
+                    float rms = 0.0f;
+                    for (int i = 0; i < numSamples; i++) {
+                        rms += floatSamples[i] * floatSamples[i];
+                    }
+                    rms = std::sqrt(rms / numSamples);
+                    debug("Wake word: {} frames processed, current RMS: {:.6f}",
+                          wakeWordFrameCount, rms);
+                }
             }
 
             if (state == ListenerState::Recording) {
