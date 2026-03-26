@@ -1,3 +1,10 @@
+creature-listener (0.6.1) unstable; urgency=medium
+
+  * Fix crash on invalid UTF-8 from LLM output (truncated emoji sequences).
+  * Sanitize text before JSON serialization to prevent nlohmann_json type_error.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 01:15:00 +0000
+
 creature-listener (0.6.0) unstable; urgency=medium
 
   * Server-side STT: send audio to creature-server for transcription instead

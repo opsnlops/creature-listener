@@ -9,6 +9,59 @@ using json = nlohmann::json;
 
 namespace creatures {
 
+namespace {
+
+/// Strip invalid UTF-8 bytes from a string.
+/// The LLM sometimes outputs partial emoji sequences that break JSON serialization.
+std::string sanitizeUtf8(const std::string& input) {
+    std::string result;
+    result.reserve(input.size());
+
+    size_t i = 0;
+    while (i < input.size()) {
+        unsigned char c = static_cast<unsigned char>(input[i]);
+
+        int expectedLen = 0;
+        if (c < 0x80) {
+            expectedLen = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            expectedLen = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            expectedLen = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            expectedLen = 4;
+        } else {
+            // Invalid leading byte — skip it
+            i++;
+            continue;
+        }
+
+        // Check that we have enough continuation bytes
+        if (i + expectedLen > input.size()) {
+            break;  // Truncated sequence at end
+        }
+
+        bool valid = true;
+        for (int j = 1; j < expectedLen; j++) {
+            if ((static_cast<unsigned char>(input[i + j]) & 0xC0) != 0x80) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) {
+            result.append(input, i, expectedLen);
+            i += expectedLen;
+        } else {
+            i++;  // Skip invalid byte
+        }
+    }
+
+    return result;
+}
+
+}  // anonymous namespace
+
 CreatureServerClient::CreatureServerClient(const std::string& baseUrl)
     : baseUrl_(baseUrl) {
     // Strip trailing slash if present
@@ -107,12 +160,14 @@ std::string CreatureServerClient::startSession(const std::string& creatureId,
 bool CreatureServerClient::addText(const std::string& sessionId,
                                     const std::string& text,
                                     const std::string& traceparent) {
+    auto cleanText = sanitizeUtf8(text);
+
     json body = {
         {"session_id", sessionId},
-        {"text", text}
+        {"text", cleanText}
     };
 
-    debug("Sending text to session {}: \"{}\"", sessionId, text);
+    debug("Sending text to session {}: \"{}\"", sessionId, cleanText);
 
     std::string response = post("/api/v1/animation/ad-hoc-stream/text",
                                 body.dump(), traceparent);
