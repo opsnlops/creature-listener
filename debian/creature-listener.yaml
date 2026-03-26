@@ -18,6 +18,9 @@ llmSystemPrompt: |
   You cannot move or do anything physical. No emojis.
   Output is read by TTS.
 
+# STT: use creature-server for transcription (fast, uses server's Ryzen CPU).
+# Set to false to run whisper locally on the Pi (slow but offline).
+useServerStt: true
 whisperModel: /usr/share/creature-listener/data/ggml-tiny.en-q5_1.bin
 vadModel: /usr/share/creature-listener/data/silero_vad.onnx
 vadThreshold: 0.5

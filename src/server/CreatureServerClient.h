@@ -1,11 +1,13 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace creatures {
 
-/// HTTP client for creature-server streaming ad-hoc session endpoints.
-/// Sends sentences from the LLM to creature-server for TTS + animation + playback.
+/// HTTP client for creature-server.
+/// Handles streaming ad-hoc sessions (TTS + animation + playback)
+/// and server-side speech-to-text transcription.
 class CreatureServerClient {
 public:
     /// Construct with base URL (e.g. "https://server.prod.chirpchirp.dev").
@@ -26,6 +28,12 @@ public:
     /// Returns true on success.
     bool finishSession(const std::string& sessionId,
                        const std::string& traceparent = "");
+
+    /// Transcribe audio on the server using whisper.cpp.
+    /// Sends raw 16kHz mono float32 PCM audio and returns the transcribed text.
+    /// Returns empty string on failure.
+    std::string transcribe(const std::vector<float>& audioData,
+                           const std::string& traceparent = "");
 
 private:
     /// Perform a POST request and return the response body.

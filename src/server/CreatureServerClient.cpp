@@ -158,4 +158,66 @@ bool CreatureServerClient::finishSession(const std::string& sessionId,
     }
 }
 
+std::string CreatureServerClient::transcribe(const std::vector<float>& audioData,
+                                              const std::string& traceparent) {
+    std::string url = baseUrl_ + "/api/v1/stt/transcribe";
+
+    float durationSec = static_cast<float>(audioData.size()) / 16000.0f;
+    info("Sending {:.1f}s of audio to server for transcription ({} samples)...",
+         durationSec, audioData.size());
+
+    CURL* curl = curl_easy_init();
+    if (!curl) {
+        error("Failed to initialize libcurl for STT");
+        return "";
+    }
+
+    std::string response;
+
+    struct curl_slist* headers = nullptr;
+    headers = curl_slist_append(headers, "Content-Type: application/octet-stream");
+    if (!traceparent.empty()) {
+        std::string tpHeader = "traceparent: " + traceparent;
+        headers = curl_slist_append(headers, tpHeader.c_str());
+    }
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, audioData.data());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE,
+                     static_cast<long>(audioData.size() * sizeof(float)));
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    long httpCode = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        error("STT request failed: {}", curl_easy_strerror(res));
+        return "";
+    }
+
+    if (httpCode < 200 || httpCode >= 300) {
+        error("STT returned status {}: {}", httpCode, response);
+        return "";
+    }
+
+    try {
+        auto j = json::parse(response);
+        std::string transcript = j.value("transcript", "");
+        double timeMs = j.value("transcription_time_ms", 0.0);
+        info("Server transcription in {:.0f}ms: \"{}\"", timeMs, transcript);
+        return transcript;
+    } catch (const json::exception& e) {
+        error("Failed to parse STT response: {}", e.what());
+        return "";
+    }
+}
+
 }  // namespace creatures

@@ -42,6 +42,7 @@ bool loadConfigFile(const std::string& path, Configuration& config) {
     if (root["wakeWordThreshold"]) config.wakeWordThreshold = root["wakeWordThreshold"].as<float>();
 
     // STT
+    if (root["useServerStt"]) config.useServerStt = root["useServerStt"].as<bool>();
     if (root["whisperModel"]) config.whisperModelPath = root["whisperModel"].as<std::string>();
 
     // VAD

@@ -19,7 +19,9 @@ struct Configuration {
     std::string embeddingModelPath;  // Path to embedding_model.onnx
     float wakeWordThreshold = 0.5f;
 
-    // Whisper STT
+    // STT — if useServerStt is true, audio is sent to creature-server for
+    // transcription (fast). Otherwise, whisper runs locally on the Pi (slow).
+    bool useServerStt = true;
     std::string whisperModelPath = "/usr/share/creature-listener/data/ggml-tiny.en-q5_1.bin";
 
     // VAD

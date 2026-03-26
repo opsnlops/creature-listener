@@ -141,11 +141,16 @@ int main(int argc, char* argv[]) {
         info("No wake word models configured — using keyboard trigger (press Enter)");
     }
 
-    // Speech-to-text
+    // Speech-to-text (local whisper — only needed if not using server STT)
     SpeechToText stt;
-    if (!stt.init(config->whisperModelPath)) {
-        error("Failed to initialize speech-to-text");
-        return 1;
+    if (config->useServerStt) {
+        info("Using server-side STT (creature-server whisper)");
+    } else {
+        info("Using local STT (whisper on this device)");
+        if (!stt.init(config->whisperModelPath)) {
+            error("Failed to initialize local speech-to-text");
+            return 1;
+        }
     }
 
     // Conversation history
@@ -331,12 +336,20 @@ int main(int argc, char* argv[]) {
                 turnSpan->setAttribute("creature.id", config->creatureId);
             }
 
-            // STT span
+            // STT — either server-side (fast) or local whisper (slow)
+            std::string tp = turnSpan ? turnSpan->traceparent() : "";
             auto sttSpan = creatures::tracer
                 ? creatures::tracer->startChildSpan("stt.transcribe", turnSpan)
                 : nullptr;
 
-            std::string transcript = stt.transcribe(buffer);
+            std::string transcript;
+            if (config->useServerStt) {
+                if (sttSpan) sttSpan->setAttribute("stt.backend", std::string("server"));
+                transcript = server.transcribe(buffer, tp);
+            } else {
+                if (sttSpan) sttSpan->setAttribute("stt.backend", std::string("local"));
+                transcript = stt.transcribe(buffer);
+            }
 
             if (sttSpan) {
                 sttSpan->setAttribute("stt.transcript", transcript);
