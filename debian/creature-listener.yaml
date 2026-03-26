@@ -30,8 +30,8 @@ maxRecordSeconds: 15
 # Wake word (optional — leave empty for keyboard trigger)
 # Train a model at https://openwakeword.com/ or with openwakeword-trainer
 # wakeWordModel: /usr/share/creature-listener/data/<wakeword>.onnx
-# melModel: /usr/share/creature-listener/data/melspectrogram.onnx
-# embeddingModel: /usr/share/creature-listener/data/embedding_model.onnx
+melModel: /usr/share/creature-listener/data/melspectrogram.onnx
+embeddingModel: /usr/share/creature-listener/data/embedding_model.onnx
 # wakeWordThreshold: 0.5
 
 # Tracing (optional — set to export traces to Honeycomb)

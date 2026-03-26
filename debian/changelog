@@ -1,3 +1,11 @@
+creature-listener (0.6.2) unstable; urgency=medium
+
+  * Ship LOWWI shared models (melspectrogram.onnx, embedding_model.onnx) in
+    the .deb package so wake word detection works out of the box.
+  * Uncomment mel/embedding model paths in sample config.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 02:00:00 +0000
+
 creature-listener (0.6.1) unstable; urgency=medium
 
   * Fix crash on invalid UTF-8 from LLM output (truncated emoji sequences).

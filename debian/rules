@@ -24,6 +24,11 @@ override_dh_auto_install:
 		install -m644 build/data/silero_vad.onnx \
 			$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/; \
 	fi
+	# LOWWI shared models for wake word detection
+	install -m644 build/_deps/lowwi-src/models/melspectrogram.onnx \
+		$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/
+	install -m644 build/_deps/lowwi-src/models/embedding_model.onnx \
+		$(CURDIR)/debian/creature-listener/usr/share/creature-listener/data/
 	# Install sample config — never overwrite user's actual config
 	install -d $(CURDIR)/debian/creature-listener/etc
 	install -m644 debian/creature-listener.yaml \
