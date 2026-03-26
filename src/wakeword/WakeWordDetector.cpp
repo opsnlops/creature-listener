@@ -31,9 +31,10 @@ bool WakeWordDetector::init(const std::string& wakeWordModelPath,
     }
 
     try {
-        // LOWWI needs the mel and embedding model paths set via its constructor
-        // or via model directory convention. The models directory should contain
-        // melspectrogram.onnx and embedding_model.onnx alongside the wake word model.
+        // LOWWI hardcodes "models/melspectrogram.onnx" and "models/embedding_model.onnx"
+        // relative to the working directory. The systemd service sets
+        // WorkingDirectory=/var/lib/creature-listener, and the .deb package
+        // creates symlinks: /var/lib/creature-listener/models/ -> data dir.
         lowwi_ = std::make_unique<CLFML::LOWWI::Lowwi>();
 
         // Configure the wake word

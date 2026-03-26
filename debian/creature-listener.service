@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 EnvironmentFile=/etc/default/creature-listener
+WorkingDirectory=/var/lib/creature-listener
 ExecStart=/usr/bin/creature-listener \
     --config-path /etc/creature-listener.yaml
 Restart=on-failure

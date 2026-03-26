@@ -1,3 +1,12 @@
+creature-listener (0.6.3) unstable; urgency=medium
+
+  * Fix LOWWI model paths: LOWWI hardcodes "models/" relative to the working
+    directory. Package creates a symlink /var/lib/creature-listener/models ->
+    /usr/share/creature-listener/data via debian/creature-listener.links.
+  * systemd service sets WorkingDirectory=/var/lib/creature-listener.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 02:15:00 +0000
+
 creature-listener (0.6.2) unstable; urgency=medium
 
   * Ship LOWWI shared models (melspectrogram.onnx, embedding_model.onnx) in
