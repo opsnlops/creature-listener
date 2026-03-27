@@ -176,6 +176,11 @@ int main(int argc, char* argv[]) {
     size_t maxRecordingSamples = static_cast<size_t>(config->maxRecordSeconds)
                                 * AudioCapture::kTargetRate;
 
+    // Cooldown after speaking — suppress wake word detection while the creature
+    // is still playing audio, to prevent the mic from picking up the creature's
+    // own speaker output and creating a feedback loop.
+    auto cooldownUntil = std::chrono::steady_clock::now();
+
     // Audio frame callback — routes frames to wake word and VAD
     int wakeWordFrameCount = 0;
     audioCapture.setFrameCallback(
@@ -244,6 +249,16 @@ int main(int argc, char* argv[]) {
         switch (state) {
 
         case ListenerState::Listening: {
+            // Suppress wake word during cooldown (creature is still speaking)
+            auto now = std::chrono::steady_clock::now();
+            if (now < cooldownUntil) {
+                // Drain any spurious wake word detections during cooldown
+                if (haveWakeWord) wakeWord.detected();
+                wakeWordDetected.store(false);
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                break;
+            }
+
             // Wait for wake word detection
             if ((haveWakeWord && wakeWord.detected())
                 || wakeWordDetected.exchange(false)) {
@@ -447,7 +462,18 @@ int main(int argc, char* argv[]) {
                     turnSpan->setSuccess();
                 }
 
-                info("Conversation turn complete, returning to listening");
+                // Estimate how long the creature will be speaking and set a
+                // cooldown to suppress wake word detection during playback.
+                // This prevents the mic from picking up the creature's own
+                // speaker output and creating a feedback loop.
+                // ~15 chars/sec for TTS speech, plus a buffer.
+                int estimatedPlaybackSec = std::max(3, static_cast<int>(
+                    fullResponse.size() / 15)) + 2;
+                cooldownUntil = std::chrono::steady_clock::now()
+                    + std::chrono::seconds(estimatedPlaybackSec);
+                info("Conversation turn complete, cooldown {}s for playback",
+                     estimatedPlaybackSec);
+
                 state = ListenerState::Listening;
                 info("State: SPEAKING -> {}", stateToString(state));
             }
