@@ -4,63 +4,11 @@
 #include <nlohmann/json.hpp>
 
 #include "util/namespace-stuffs.h"
+#include "util/utf8.h"
 
 using json = nlohmann::json;
 
 namespace creatures {
-
-namespace {
-
-/// Strip invalid UTF-8 bytes from a string.
-/// The LLM sometimes outputs partial emoji sequences that break JSON serialization.
-std::string sanitizeUtf8(const std::string& input) {
-    std::string result;
-    result.reserve(input.size());
-
-    size_t i = 0;
-    while (i < input.size()) {
-        unsigned char c = static_cast<unsigned char>(input[i]);
-
-        int expectedLen = 0;
-        if (c < 0x80) {
-            expectedLen = 1;
-        } else if ((c & 0xE0) == 0xC0) {
-            expectedLen = 2;
-        } else if ((c & 0xF0) == 0xE0) {
-            expectedLen = 3;
-        } else if ((c & 0xF8) == 0xF0) {
-            expectedLen = 4;
-        } else {
-            // Invalid leading byte — skip it
-            i++;
-            continue;
-        }
-
-        // Check that we have enough continuation bytes
-        if (i + expectedLen > input.size()) {
-            break;  // Truncated sequence at end
-        }
-
-        bool valid = true;
-        for (int j = 1; j < expectedLen; j++) {
-            if ((static_cast<unsigned char>(input[i + j]) & 0xC0) != 0x80) {
-                valid = false;
-                break;
-            }
-        }
-
-        if (valid) {
-            result.append(input, i, expectedLen);
-            i += expectedLen;
-        } else {
-            i++;  // Skip invalid byte
-        }
-    }
-
-    return result;
-}
-
-}  // anonymous namespace
 
 CreatureServerClient::CreatureServerClient(const std::string& baseUrl)
     : baseUrl_(baseUrl) {

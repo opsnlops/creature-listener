@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.6.4"
+        VERSION "0.6.5"
         DESCRIPTION "Wake word conversational interface for April's Creature Workshop"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
@@ -318,6 +318,8 @@ set(LISTENER_SOURCES
     src/trace/Trace.h
     src/trace/Trace.cpp
     src/util/namespace-stuffs.h
+    src/util/utf8.h
+    src/util/utf8.cpp
 )
 
 add_executable(creature-listener ${LISTENER_SOURCES})

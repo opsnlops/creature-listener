@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "util/namespace-stuffs.h"
+#include "util/utf8.h"
 
 using json = nlohmann::json;
 
@@ -182,9 +183,9 @@ std::string LLMClient::respondStreaming(const std::string& prompt,
 
     auto historyMessages = history_.allMessages();
     for (const auto& msg : historyMessages) {
-        messages.push_back({{"role", msg.role}, {"content", msg.content}});
+        messages.push_back({{"role", msg.role}, {"content", sanitizeUtf8(msg.content)}});
     }
-    messages.push_back({{"role", "user"}, {"content", prompt}});
+    messages.push_back({{"role", "user"}, {"content", sanitizeUtf8(prompt)}});
 
     if (!historyMessages.empty()) {
         info("Conversation history: {} previous messages included", historyMessages.size());
@@ -268,7 +269,7 @@ std::string LLMClient::respondStreaming(const std::string& prompt,
         cleanResponse = cleanResponse.substr(cStart, cEnd - cStart + 1);
     }
     if (!cleanResponse.empty()) {
-        history_.addExchange(prompt, cleanResponse);
+        history_.addExchange(sanitizeUtf8(prompt), sanitizeUtf8(cleanResponse));
         info("Saved to history — user: \"{}...\" assistant: \"{}...\"",
              prompt.substr(0, 50), cleanResponse.substr(0, 50));
     } else {

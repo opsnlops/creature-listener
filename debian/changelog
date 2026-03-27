@@ -1,3 +1,12 @@
+creature-listener (0.6.5) unstable; urgency=medium
+
+  * Fix UTF-8 crash in LLM client — sanitize conversation history and prompt
+    before JSON serialization, not just addText(). Invalid bytes from the LLM
+    were accumulating in history and crashing on subsequent turns.
+  * Move sanitizeUtf8() to shared util/utf8.h for use across components.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 19:30:00 +0000
+
 creature-listener (0.6.4) unstable; urgency=medium
 
   * Add periodic debug logging for wake word audio flow — logs frame count
