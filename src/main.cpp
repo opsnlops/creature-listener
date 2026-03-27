@@ -19,6 +19,7 @@
 #include "audio/VoiceActivityDetector.h"
 #include "config/CommandLine.h"
 #include "config/Configuration.h"
+#include "homeassistant/HomeAssistantClient.h"
 #include "llm/ConversationHistory.h"
 #include "llm/LLMClient.h"
 #include "server/CreatureServerClient.h"
@@ -157,10 +158,20 @@ int main(int argc, char* argv[]) {
     // Conversation history
     ConversationHistory history(config->maxConversationExchanges);
 
+    // Home Assistant client (optional)
+    std::shared_ptr<HomeAssistantClient> haClient;
+    if (!config->homeAssistant.url.empty() && !config->homeAssistant.apiKey.empty()) {
+        haClient = std::make_shared<HomeAssistantClient>(
+            config->homeAssistant.url, config->homeAssistant.apiKey);
+        info("Home Assistant: {} entities available for tool use",
+             config->homeAssistant.entities.size());
+    }
+
     // LLM client
     LLMClient llm(config->llmHost, config->llmPort, config->llmModel,
                   config->llmSystemPrompt, config->llmTemperature,
-                  config->llmMaxTokens, config->minSentenceChars, history);
+                  config->llmMaxTokens, config->minSentenceChars, history,
+                  haClient, config->homeAssistant.entities);
 
     // Creature server client
     CreatureServerClient server(config->creatureServerUrl);

@@ -2,8 +2,20 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace creatures {
+
+struct HomeAssistantEntity {
+    std::string entityId;     // e.g. "sensor.outside_temperature"
+    std::string description;  // e.g. "Outside temperature"
+};
+
+struct HomeAssistantConfig {
+    std::string url;     // e.g. "http://homeassistant.local:8123"
+    std::string apiKey;  // Long-lived access token
+    std::vector<HomeAssistantEntity> entities;
+};
 
 struct Configuration {
     // General
@@ -50,6 +62,9 @@ struct Configuration {
     std::string creatureServerUrl = "https://server.prod.chirpchirp.dev";
     std::string creatureId;
     bool resumePlaylist = true;
+
+    // Home Assistant
+    HomeAssistantConfig homeAssistant;
 };
 
 }  // namespace creatures

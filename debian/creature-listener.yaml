@@ -34,6 +34,22 @@ melModel: /usr/share/creature-listener/data/melspectrogram.onnx
 embeddingModel: /usr/share/creature-listener/data/embedding_model.onnx
 # wakeWordThreshold: 0.5
 
+# Home Assistant (optional — enables tool use for querying house state)
+# homeAssistant:
+#   url: https://home.opsnlops.io
+#   apiKey: <long-lived access token>
+#   entities:
+#     - entityId: sensor.outside_temperature
+#       description: Outside temperature
+#     - entityId: sensor.mango_temperature
+#       description: Mango's temperature
+#     - entityId: sensor.beaky_temperature
+#       description: Beaky's temperature
+#     - entityId: lock.front_door
+#       description: Front door state
+#     - entityId: lock.back_door
+#       description: Back door state
+
 # Tracing (optional — set to export traces to Honeycomb)
 # honeycombApiKey: <key>
 # honeycombDataset: creature-listener

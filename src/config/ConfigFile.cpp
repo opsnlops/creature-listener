@@ -55,6 +55,22 @@ bool loadConfigFile(const std::string& path, Configuration& config) {
     if (root["honeycombApiKey"]) config.honeycombApiKey = root["honeycombApiKey"].as<std::string>();
     if (root["honeycombDataset"]) config.honeycombDataset = root["honeycombDataset"].as<std::string>();
 
+    // Home Assistant
+    if (root["homeAssistant"]) {
+        auto ha = root["homeAssistant"];
+        if (ha["url"]) config.homeAssistant.url = ha["url"].as<std::string>();
+        if (ha["apiKey"]) config.homeAssistant.apiKey = ha["apiKey"].as<std::string>();
+        if (ha["entities"]) {
+            for (const auto& entity : ha["entities"]) {
+                HomeAssistantEntity e;
+                e.entityId = entity["entityId"].as<std::string>();
+                e.description = entity["description"].as<std::string>();
+                config.homeAssistant.entities.push_back(e);
+            }
+            info("  Home Assistant: {} entities configured", config.homeAssistant.entities.size());
+        }
+    }
+
     return true;
 }
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(creature-listener
-        VERSION "0.7.0"
+        VERSION "0.8.0"
         DESCRIPTION "Wake word conversational interface for April's Creature Workshop"
         HOMEPAGE_URL https://github.com/opsnlops/creature-listener
         LANGUAGES C CXX)
@@ -313,6 +313,8 @@ set(LISTENER_SOURCES
     src/llm/ConversationHistory.cpp
     src/config/ConfigFile.h
     src/config/ConfigFile.cpp
+    src/homeassistant/HomeAssistantClient.h
+    src/homeassistant/HomeAssistantClient.cpp
     src/server/CreatureServerClient.h
     src/server/CreatureServerClient.cpp
     src/trace/Trace.h

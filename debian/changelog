@@ -1,3 +1,13 @@
+creature-listener (0.8.0) unstable; urgency=medium
+
+  * Home Assistant tool use: LLM can query house state via function calling.
+  * Supports sensor readings (temperature) and device states (locks).
+  * Configurable entity list in YAML with descriptions for the LLM.
+  * Tool call loop: LLM requests data → creature-listener calls HA API →
+    result sent back → LLM generates natural language response.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 20:00:00 +0000
+
 creature-listener (0.7.0) unstable; urgency=medium
 
   * Fix feedback loop: suppress wake word detection during playback cooldown.
