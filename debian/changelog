@@ -1,3 +1,28 @@
+creature-listener (0.8.3) unstable; urgency=medium
+
+  * Fix cooldown blocking keyboard triggers during development.
+  * Keyboard Enter always works; only wake word mic detection is suppressed.
+  * Reduce cooldown estimate (~13 chars/sec + 1s buffer).
+  * TTS text cleanup: convert ° to "degrees" before sending to server.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 21:15:00 +0000
+
+creature-listener (0.8.2) unstable; urgency=medium
+
+  * Fix cooldown blocking keyboard triggers during development.
+  * Keyboard Enter always works; only wake word mic detection is suppressed.
+  * Reduce cooldown estimate (~13 chars/sec + 1s, was ~15 chars/sec + 2s).
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 21:10:00 +0000
+
+creature-listener (0.8.1) unstable; urgency=medium
+
+  * Fix tool call re-prompt: use plain assistant/user messages for tool results
+    instead of OpenAI tool_calls/tool format. Mistral Nemo on llama-server
+    doesn't generate content after receiving tool role messages.
+
+ -- April White <april@creature.engineering>  Wed, 26 Mar 2026 20:35:00 +0000
+
 creature-listener (0.8.0) unstable; urgency=medium
 
   * Home Assistant tool use: LLM can query house state via function calling.

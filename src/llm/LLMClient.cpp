@@ -420,29 +420,21 @@ std::string LLMClient::respondStreaming(const std::string& prompt,
             toolResult = "Error: unknown tool " + result.toolCallName;
         }
 
-        // Add the assistant's tool call and the tool result to messages
-        json toolCallMsg = {
-            {"role", "assistant"},
-            {"content", nullptr},
-            {"tool_calls", json::array({
-                {{"id", result.toolCallId.empty() ? "call_1" : result.toolCallId},
-                 {"type", "function"},
-                 {"function", {
-                     {"name", result.toolCallName},
-                     {"arguments", result.toolCallArgs}
-                 }}}
-            })}
-        };
-        messages.push_back(toolCallMsg);
+        // Add the assistant's tool call and the tool result to messages.
+        // Format the tool result as a regular assistant+user exchange that
+        // llama-server can understand, since not all models handle the
+        // OpenAI tool_calls/tool message format correctly.
+        std::string toolSummary = fmt::format(
+            "[Used get_home_state for {}. Result: {}]",
+            result.toolCallArgs, toolResult);
+        messages.push_back({{"role", "assistant"}, {"content", toolSummary}});
+        messages.push_back({{"role", "user"},
+            {"content", "Now respond to the original question using that information. "
+                        "Be conversational and natural."}});
 
-        json toolResultMsg = {
-            {"role", "tool"},
-            {"tool_call_id", result.toolCallId.empty() ? "call_1" : result.toolCallId},
-            {"content", toolResult}
-        };
-        messages.push_back(toolResultMsg);
+        debug("Re-prompting LLM with tool result: {}", toolSummary);
 
-        // Re-prompt — stream the final answer (no tools this time to force content)
+        // Re-prompt — stream the final answer (no tools to prevent loops)
         result = doStreamingRequest(messages, false, onSentence);
     }
 

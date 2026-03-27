@@ -260,19 +260,21 @@ int main(int argc, char* argv[]) {
         switch (state) {
 
         case ListenerState::Listening: {
-            // Suppress wake word during cooldown (creature is still speaking)
+            // Suppress wake word during cooldown (creature is still speaking),
+            // but always allow keyboard triggers (they're intentional).
             auto now = std::chrono::steady_clock::now();
-            if (now < cooldownUntil) {
-                // Drain any spurious wake word detections during cooldown
+            bool inCooldown = now < cooldownUntil;
+
+            if (inCooldown) {
+                // Drain spurious wake word detections from the mic
                 if (haveWakeWord) wakeWord.detected();
-                wakeWordDetected.store(false);
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                break;
             }
 
-            // Wait for wake word detection
-            if ((haveWakeWord && wakeWord.detected())
-                || wakeWordDetected.exchange(false)) {
+            // Keyboard trigger always works; wake word only outside cooldown
+            bool keyboardTrigger = wakeWordDetected.exchange(false);
+            bool wakeWordTrigger = !inCooldown && haveWakeWord && wakeWord.detected();
+
+            if (keyboardTrigger || wakeWordTrigger) {
                 state = ListenerState::Ack;
                 info("State: {} -> {}", stateToString(ListenerState::Listening),
                      stateToString(state));
@@ -477,9 +479,9 @@ int main(int argc, char* argv[]) {
                 // cooldown to suppress wake word detection during playback.
                 // This prevents the mic from picking up the creature's own
                 // speaker output and creating a feedback loop.
-                // ~15 chars/sec for TTS speech, plus a buffer.
-                int estimatedPlaybackSec = std::max(3, static_cast<int>(
-                    fullResponse.size() / 15)) + 2;
+                // ~13 chars/sec for ElevenLabs TTS, plus 1s buffer.
+                int estimatedPlaybackSec = std::max(2, static_cast<int>(
+                    fullResponse.size() / 13)) + 1;
                 cooldownUntil = std::chrono::steady_clock::now()
                     + std::chrono::seconds(estimatedPlaybackSec);
                 info("Conversation turn complete, cooldown {}s for playback",

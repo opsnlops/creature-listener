@@ -47,4 +47,23 @@ std::string sanitizeUtf8(const std::string& input) {
     return result;
 }
 
+std::string cleanForTTS(const std::string& input) {
+    std::string result;
+    result.reserve(input.size());
+
+    for (size_t i = 0; i < input.size(); i++) {
+        // ° is UTF-8 bytes 0xC2 0xB0
+        if (i + 1 < input.size()
+            && static_cast<unsigned char>(input[i]) == 0xC2
+            && static_cast<unsigned char>(input[i + 1]) == 0xB0) {
+            result += " degrees";
+            i++;  // skip the second byte
+        } else {
+            result += input[i];
+        }
+    }
+
+    return result;
+}
+
 }  // namespace creatures

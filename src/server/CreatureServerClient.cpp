@@ -108,7 +108,7 @@ std::string CreatureServerClient::startSession(const std::string& creatureId,
 bool CreatureServerClient::addText(const std::string& sessionId,
                                     const std::string& text,
                                     const std::string& traceparent) {
-    auto cleanText = sanitizeUtf8(text);
+    auto cleanText = cleanForTTS(sanitizeUtf8(text));
 
     json body = {
         {"session_id", sessionId},
